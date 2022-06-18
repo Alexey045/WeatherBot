@@ -179,7 +179,7 @@ async def cmd_geotag_message(message: types.Message):
         case _:
 
             await message.reply(
-                f'{message["from"]["username"]}’s location\n'
+                f'{message["from"]["first_name"]}’s location\n'
                 f'{emoji.emojize(f":thermometer:")}'
                 f'Temperature: {round(float(req["main"]["temp"]))}\u00A0°C,\n'
                 f'{emoji.emojize(f":dashing_away:")}'
