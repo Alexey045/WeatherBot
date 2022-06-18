@@ -45,12 +45,17 @@ async def weather_request(message: types.Message):
                         case '404' | 404:
                             await message.reply("Please, write name of the city.")
                             return
-                if len(city_req) != 0:
+                if len(city_req) != 0:  # ToDo
                     req = json.loads(
+                        requests.get(
+                            f"https://api.openweathermap.org/data/2.5/onecall"
+                            f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&appid={KEY}").text)
+                    """req = json.loads(
                         requests.get(
                             f"https://api.openweathermap.org/data/2.5/onecall"
                             f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
                             f"&units=metric&appid={KEY}").text)
+                    """
                     await message.reply(
                         f'{emoji.emojize(f":cityscape:")}'
                         f'City: {bold(city_req[0]["name"])}.\n\n' + "\n".join(
@@ -83,7 +88,7 @@ async def weather_request(message: types.Message):
     print(message)
     city = str(message["text"]).lstrip("/current ")
     if len(city) != 0:
-        if city.isnumeric():
+        if city.isnumeric() or "&" in city:
             await message.reply("Please, write name of the city.")
         else:
             if len(city) > 150:
@@ -104,6 +109,7 @@ async def weather_request(message: types.Message):
                         requests.get(
                             f"http://api.openweathermap.org/data/2.5/weather"
                             f"?q={city_req[0]['name']}&units=metric&appid={KEY}").text)
+                    print(req)
                     match req["cod"]:
                         case '404' | 404 | '400' | 400:
                             await message.reply(req["message"].capitalize() + '.')
@@ -137,6 +143,11 @@ async def settings(message: types.Message):
 
 @dp.message_handler(commands="help")
 async def cmd_help(message: types.Message):
+    await message.answer("/current [city name] - current weather\n")
+
+
+@dp.message_handler(commands="about")
+async def cmd_about(message: types.Message):
     await message.answer("Weather Bot is @PythonEater personal bot, which will send daily and "
                          "week forecast. Work in progress.")
 
@@ -163,3 +174,4 @@ async def cmd_geotag_message(message: types.Message):
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
+
