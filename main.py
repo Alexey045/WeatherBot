@@ -34,7 +34,7 @@ language = "en"
 @dp.message_handler(commands=['daily'], content_types=[ContentType.TEXT])
 async def weather_request(message: types.Message):
     print(message)
-    city = str(message["text"]).lstrip("/daily ")
+    city = str(message["text"]).lstrip("/daily").strip()
     if len(city) != 0:
         if city.isnumeric():
             await message.reply("Please, write name of the city.")
