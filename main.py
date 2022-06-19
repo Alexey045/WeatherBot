@@ -26,9 +26,11 @@ response = {
     "en": {"city": "City", "temp": "Temperature",
            "wind": "Winds speed", "hum": "Humidity", "metrics": "m/s"},
     "ru": {"city": "Город", "temp": "Температура",
-           "wind": "Скорость ветра", "hum": "Влажность", "metrics": "м/с"}
+           "wind": "Скорость ветра", "hum": "Влажность", "metrics": "м/с"},
+    "uk": {"city": "Місто", "temp": "Температура",
+           "wind": "Швидкість вітру", "hum": "Вологість", "metrics": "м/с"}
 }
-language = "en"
+lang = "en"
 
 
 @dp.message_handler(commands=['daily'], content_types=[ContentType.TEXT])
@@ -119,7 +121,7 @@ async def weather_request(message: types.Message):
                     req = json.loads(
                         requests.get(
                             f"http://api.openweathermap.org/data/2.5/weather"
-                            f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={language}"
+                            f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
                             f"&units=metric&appid={KEY}").text)
                     match req["cod"]:
                         case '404' | 404 | '400' | 400:
@@ -133,17 +135,17 @@ async def weather_request(message: types.Message):
                             await message.reply(
                                 f'{emoji.emojize(f":cityscape:")} '
                                 # f'City: {city_req[0]["name"]}\n'
-                                f'{response[language]["city"]}:'
+                                f'{response[lang]["city"]}:'
                                 f' {city_name}\n'
                                 # f' {city_req[0]["local_names"][language]}\n'
                                 f'{emoji.emojize(f":thermometer:")} '
-                                f'{response[language]["temp"]}:'
+                                f'{response[lang]["temp"]}:'
                                 f' {round(float(req["main"]["temp"]))}\u00A0°C\n'
                                 f'{emoji.emojize(f":dashing_away:")} '
-                                f'{response[language]["wind"]}:'
-                                f' {req["wind"]["speed"]}\u00A0{response[language]["metrics"]}\n'
+                                f'{response[lang]["wind"]}:'
+                                f' {req["wind"]["speed"]}\u00A0{response[lang]["metrics"]}\n'
                                 f'{emoji.emojize(f":droplet:")} '
-                                f'{response[language]["hum"]}: '
+                                f'{response[lang]["hum"]}: '
                                 f'{req["main"]["humidity"]}%')
                 else:
                     await message.reply("Please, write name of the city.")
@@ -190,7 +192,7 @@ async def cmd_geotag_message(message: types.Message):
 
 def name_exception(req):
     try:  # ToDo
-        city = req[0]["local_names"][language]
+        city = req[0]["local_names"][lang]
     except KeyError:
         city = req[0]["name"]
     return city
