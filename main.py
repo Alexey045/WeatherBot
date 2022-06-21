@@ -44,7 +44,7 @@ async def process_daily_command(message: types.Message):
     print(message)
     city = str(message["text"]).lstrip("/daily").strip()
     if len(city) != 0:
-        if city.isnumeric() or "&" in city:
+        if city.isnumeric() or "&" in city or "#" in city:
             await message.reply("Please, write name of the city.")
         else:
             if len(city) > 150:  # city name must be less than 150 chars
@@ -110,7 +110,7 @@ async def process_current_command(message: types.Message):
     print(message)
     city = str(message["text"]).lstrip("/current").strip()
     if len(city) != 0:
-        if city.isnumeric() or "&" in city:
+        if city.isnumeric() or "&" in city or "#" in city:
             await message.reply("Please, write name of the city.")
         else:
             if len(city) > 150:  # WTF IS THAT??? city name must be less than 150 chars
@@ -221,9 +221,13 @@ def catch_error(code) -> bool:
 
 
 """
-@dp.message_handler(content_types=ContentType.TEXT)
-async def cmd_geotag_message(message: types.Message):
-    print(message)
+def req(city):
+    request = json.loads(
+        requests.get(f"https://api.openweathermap.org/data/2.5/weather"
+                     f"?q={city}&units=metric&appid={KEY}").text)
+    if request["cod"] == "404":
+        print('error')
+    return req
 """
 
 if __name__ == '__main__':
