@@ -147,8 +147,8 @@ async def weather_request(message: types.Message):
                             city_name = name_exception(city_req)
                             await message.reply(
                                 f'{emoji.emojize(f":cityscape:")} '
-                                f'{city_name}:'
-                                f' {round(float(req["main"]["temp"]))}\u00A0°C\n'
+                                f'{bold(city_name)}:'
+                                f' {bold(round(float(req["main"]["temp"])))}\u00A0{bold("°C")}\n'
                                 f'{emoji.emojize(f":thermometer:")} '
                                 f'{response[lang]["temp"]}:'
                                 f' {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
@@ -159,7 +159,7 @@ async def weather_request(message: types.Message):
                                 f' {req["wind"]["speed"]}\u00A0{response[lang]["metrics"]}\n'
                                 f'{emoji.emojize(f":droplet:")} '
                                 f'{response[lang]["hum"]}: '
-                                f'{req["main"]["humidity"]}%')
+                                f'{req["main"]["humidity"]}%', parse_mode=ParseMode.MARKDOWN)
                 else:
                     await message.reply("Please, write name of the city.")
     else:
