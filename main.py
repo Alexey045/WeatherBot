@@ -90,7 +90,8 @@ async def process_daily_command(message: types.Message):
                             f" Night: "
                             f"{round(float(req['daily'][i]['temp']['night']))}"
                             f"\u00A0°C.\n"
-                            for i in range(len(req["daily"]) - 1)), parse_mode=ParseMode.HTML)
+                            for i in range(len(req["daily"]) - 1)),
+                        parse_mode=ParseMode.HTML)
                 else:
                     await message.reply("Please, write name of the city.")
     else:
@@ -159,7 +160,8 @@ async def process_current_command(message: types.Message):
                                 f' {req["wind"]["speed"]}\u00A0{response[lang]["metrics"]}\n'
                                 f'{emoji.emojize(f":droplet:")} '
                                 f'{response[lang]["hum"]}: '
-                                f'{req["main"]["humidity"]}%', parse_mode=ParseMode.HTML)
+                                f'{req["main"]["humidity"]}%',
+                                parse_mode=ParseMode.HTML)
                 else:
                     await message.reply("Please, write name of the city.")
     else:
@@ -195,13 +197,20 @@ async def process_geotag_command(message: types.Message):
         case _:
 
             await message.reply(
-                f'<b>{message["from"]["first_name"]}’s location\n</b>'
+                f'<b>{message["from"]["first_name"]}’s location'
+                f' {round(float(req["main"]["temp"]))}\u00A0{"°C"}\n</b>'
                 f'{emoji.emojize(f":thermometer:")}'
-                f'Temperature: {round(float(req["main"]["temp"]))}\u00A0°C,\n'
+                f' {response[lang]["temp"]}:'
+                f' {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
+                f'{weather_descriptions[str(req["weather"][0]["icon"])[:-1]]}'
+                f' {str(req["weather"][0]["description"]).capitalize()}\n'
                 f'{emoji.emojize(f":dashing_away:")}'
-                f'Wind speed: {req["wind"]["speed"]}\u00A0m/s,\n'
+                f' {response[lang]["wind"]}:'
+                f' {req["wind"]["speed"]}\u00A0m/s,\n'
                 f'{emoji.emojize(f":droplet:")}'
-                f'Humidity: {req["main"]["humidity"]}%.'.lstrip(), parse_mode=ParseMode.HTML)
+                f' {response[lang]["hum"]}:'
+                f' {req["main"]["humidity"]}%.'.lstrip(),
+                parse_mode=ParseMode.HTML)
 
 
 def name_exception(req):
