@@ -22,6 +22,7 @@ bot = Bot(token=bot_token)
 logging.basicConfig(level=logging.INFO)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
+
 response = {
     "en": {"city": "City", "temp": "Temperature",
            "wind": "Winds speed", "hum": "Humidity", "metrics": "m/s"},
@@ -31,6 +32,16 @@ response = {
            "wind": "Швидкість вітру", "hum": "Вологість", "metrics": "м/с"}
 }
 lang = "en"
+
+weather_descriptions = {"01": f"{emoji.emojize(f':sun:')}",
+                        "02": f"{emoji.emojize(f':sun_behind_small_cloud:')}",
+                        "03": f"{emoji.emojize(f':sun_behind_cloud:')}",
+                        "04": f"{emoji.emojize(f':cloud:')}",
+                        "09": f"{emoji.emojize(f':cloud_with_rain:')}",
+                        "10": f"{emoji.emojize(f':cloud_with_rain:')}",
+                        "11": f"{emoji.emojize(f':cloud_with_lightning:')}",
+                        "13": f"{emoji.emojize(f':cloud_with_snow:')}",
+                        "50": f"{emoji.emojize(f':fog:')}"}
 
 
 @dp.message_handler(commands=['daily'], content_types=[ContentType.TEXT])
@@ -46,7 +57,7 @@ async def weather_request(message: types.Message):
                 return
             else:
                 city_req = json.loads(
-                    requests.get(f"http://api.openweathermap.org/geo/1.0/direct"
+                    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
                                  f"?q={city}"
                                  f"&limit=1&appid={KEY}").text)  # here was To Do
                 if 'cod' in city_req:
@@ -108,7 +119,7 @@ async def weather_request(message: types.Message):
                 return
             else:
                 city_req = json.loads(
-                    requests.get(f"http://api.openweathermap.org/geo/1.0/direct"
+                    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
                                  f"?q={city}"
                                  f"&limit=1&appid={KEY}").text)
                 print(city_req)
@@ -120,7 +131,7 @@ async def weather_request(message: types.Message):
                 if len(city_req) != 0:
                     req = json.loads(
                         requests.get(
-                            f"http://api.openweathermap.org/data/2.5/weather"
+                            f"https://api.openweathermap.org/data/2.5/weather"
                             f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
                             f"&units=metric&appid={KEY}").text)
                     match req["cod"]:
@@ -141,6 +152,9 @@ async def weather_request(message: types.Message):
                                 f'{emoji.emojize(f":thermometer:")} '
                                 f'{response[lang]["temp"]}:'
                                 f' {round(float(req["main"]["temp"]))}\u00A0°C\n'
+                                f'Feels like {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
+                                f'{weather_descriptions[str(req["weather"][0]["icon"])[:-1]]}'
+                                f' {str(req["weather"][0]["description"]).capitalize()}\n'
                                 f'{emoji.emojize(f":dashing_away:")} '
                                 f'{response[lang]["wind"]}:'
                                 f' {req["wind"]["speed"]}\u00A0{response[lang]["metrics"]}\n'
@@ -168,11 +182,11 @@ async def cmd_about(message: types.Message):
 @dp.message_handler(content_types=ContentType.LOCATION)
 async def cmd_geotag_message(message: types.Message):
     latitude, longitude = message["location"]["latitude"], message["location"]["longitude"]
-    """city_req = json.loads(requests.get(f"http://api.openweathermap.org/geo/1.0/reverse"
+    """city_req = json.loads(requests.get(f"https://api.openweathermap.org/geo/1.0/reverse"
                                    f"?lat={latitude}&lon={longitude}&limit=1&appid={KEY}").text)
     city_name = name_exception(city_req)"""
     req = json.loads(requests.get(
-        f"http://api.openweathermap.org/data/2.5/weather"
+        f"https://api.openweathermap.org/data/2.5/weather"
         f"?lat={latitude}&lon={longitude}&units=metric&appid={KEY}").text)
     # &lang={message.from_user.language_code}
     match req['cod']:
