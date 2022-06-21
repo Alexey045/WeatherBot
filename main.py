@@ -24,11 +24,11 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 response = {
-    "en": {"city": "City", "temp": "Temperature",
+    "en": {"temp": "Feels like",
            "wind": "Winds speed", "hum": "Humidity", "metrics": "m/s"},
-    "ru": {"city": "Город", "temp": "Температура",
+    "ru": {"temp": "Ощущается как",
            "wind": "Скорость ветра", "hum": "Влажность", "metrics": "м/с"},
-    "uk": {"city": "Місто", "temp": "Температура",
+    "uk": {"temp": "Відчувається як",
            "wind": "Швидкість вітру", "hum": "Вологість", "metrics": "м/с"}
 }
 lang = "en"
@@ -134,9 +134,11 @@ async def weather_request(message: types.Message):
                             f"https://api.openweathermap.org/data/2.5/weather"
                             f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
                             f"&units=metric&appid={KEY}").text)
+                    print(req)
                     match req["cod"]:
                         case '404' | 404 | '400' | 400:
-                            await message.reply(req["message"].capitalize() + '.')
+                            # await message.reply(req["message"].capitalize() + '.')
+                            await message.reply("Error 404: city not found")
                         case '401' | 401:
                             await message.reply("Please, write name of the city.")
                             # await message.reply("Invalid API key.")
@@ -145,14 +147,11 @@ async def weather_request(message: types.Message):
                             city_name = name_exception(city_req)
                             await message.reply(
                                 f'{emoji.emojize(f":cityscape:")} '
-                                # f'City: {city_req[0]["name"]}\n'
-                                f'{response[lang]["city"]}:'
-                                f' {city_name}\n'
-                                # f' {city_req[0]["local_names"][language]}\n'
+                                f'{city_name}:'
+                                f' {round(float(req["main"]["temp"]))}\u00A0°C\n'
                                 f'{emoji.emojize(f":thermometer:")} '
                                 f'{response[lang]["temp"]}:'
-                                f' {round(float(req["main"]["temp"]))}\u00A0°C\n'
-                                f'Feels like {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
+                                f' {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
                                 f'{weather_descriptions[str(req["weather"][0]["icon"])[:-1]]}'
                                 f' {str(req["weather"][0]["description"]).capitalize()}\n'
                                 f'{emoji.emojize(f":dashing_away:")} '
@@ -190,7 +189,7 @@ async def cmd_geotag_message(message: types.Message):
         f"?lat={latitude}&lon={longitude}&units=metric&appid={KEY}").text)
     # &lang={message.from_user.language_code}
     match req['cod']:
-        case '404' | 404 | '400' | 400 | '401' | 401:
+        case '404' | 404 | '400' | 400 | '401' | 401:  # is 400 possible?
             await message.reply("Please, write name of the city.")
         case _:
 
@@ -210,6 +209,14 @@ def name_exception(req):
     except KeyError:
         city = req[0]["name"]
     return city
+
+
+def catch_error(code) -> bool:
+    match code:
+        case '404' | 404 | '400' | 400 | '401' | 401:  # is 400 possible?
+            return False
+        case _:
+            return True
 
 
 """
