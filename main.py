@@ -8,7 +8,8 @@ import requests
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import ContentType, ParseMode
 import emoji
-from aiogram.utils.markdown import bold
+
+# from aiogram.utils.markdown import *
 
 bot_token = getenv("BOT_TOKEN")
 KEY = getenv("OWM_KEY")
@@ -73,25 +74,28 @@ async def weather_request(message: types.Message):
                             f"&units=metric&appid={KEY}").text)
                     await message.reply(
                         f'{emoji.emojize(f":cityscape:")} '
-                        f'City: {bold(city_req[0]["name"])}\n\n' + "\n".join(
+                        f'<b>{city_req[0]["name"]}</b>\n\n' + "\n".join(
                             str(emoji.emojize(f":keycap_{i + 1}:") + " " +
-                                bold(datetime.datetime.fromtimestamp(
-                                    req["daily"][i]["dt"]).strftime(
-                                    '%B %d, %A'))) + f":\n    {emoji.emojize(':sun:')} "
-                                                     f"Morning: "
-                                                     f"{round(float(req['daily'][i]['temp']['morn']))}"
-                                                     f"\u00A0°C,"
-                                                     f" Day: "
-                                                     f"{round(float(req['daily'][i]['temp']['day']))}"
-                                                     f"\u00A0°C."
-                                                     f"\n    {emoji.emojize(':new_moon_face:')} "
-                                                     f"Eve: "
-                                                     f"{round(float(req['daily'][i]['temp']['eve']))}"
-                                                     f"\u00A0°C,"
-                                                     f" Night: "
-                                                     f"{round(float(req['daily'][i]['temp']['night']))}"
-                                                     f"\u00A0°C.\n"
-                            for i in range(len(req["daily"]) - 1)), parse_mode=ParseMode.MARKDOWN)
+                                f"<b>"
+                                + datetime.datetime.fromtimestamp(
+                                req["daily"][i]["dt"]).strftime(
+                                '%B %d, %A')) +
+                            f"</b>" +
+                            f":\n    {emoji.emojize(':sun:')} "
+                            f"Morning: "
+                            f"{round(float(req['daily'][i]['temp']['morn']))}"
+                            f"\u00A0°C,"
+                            f" Day: "
+                            f"{round(float(req['daily'][i]['temp']['day']))}"
+                            f"\u00A0°C."
+                            f"\n    {emoji.emojize(':new_moon_face:')} "
+                            f"Eve: "
+                            f"{round(float(req['daily'][i]['temp']['eve']))}"
+                            f"\u00A0°C,"
+                            f" Night: "
+                            f"{round(float(req['daily'][i]['temp']['night']))}"
+                            f"\u00A0°C.\n"
+                            for i in range(len(req["daily"]) - 1)), parse_mode=ParseMode.HTML)
                 else:
                     await message.reply("Please, write name of the city.")
     else:
@@ -143,12 +147,13 @@ async def weather_request(message: types.Message):
                             await message.reply("Please, write name of the city.")
                             # await message.reply("Invalid API key.")
                         case _:
-                            print(req)
                             city_name = name_exception(city_req)
                             await message.reply(
                                 f'{emoji.emojize(f":cityscape:")} '
-                                f'{bold(city_name)}:'
-                                f' {bold(round(float(req["main"]["temp"])))}\u00A0{bold("°C")}\n'
+                                f'<b>'
+                                f'{city_name}:'
+                                f' {round(float(req["main"]["temp"]))}\u00A0{"°C"}\n'
+                                f'</b>'
                                 f'{emoji.emojize(f":thermometer:")} '
                                 f'{response[lang]["temp"]}:'
                                 f' {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
@@ -159,7 +164,7 @@ async def weather_request(message: types.Message):
                                 f' {req["wind"]["speed"]}\u00A0{response[lang]["metrics"]}\n'
                                 f'{emoji.emojize(f":droplet:")} '
                                 f'{response[lang]["hum"]}: '
-                                f'{req["main"]["humidity"]}%', parse_mode=ParseMode.MARKDOWN)
+                                f'{req["main"]["humidity"]}%', parse_mode=ParseMode.HTML)
                 else:
                     await message.reply("Please, write name of the city.")
     else:
@@ -167,19 +172,20 @@ async def weather_request(message: types.Message):
 
 
 @dp.message_handler(commands="help")
-async def cmd_help(message: types.Message):
+async def process_help_command(message: types.Message):
     await message.answer("/current [city name] - current weather\n"
                          "/daily [city name] - daily weather forecast")
 
 
 @dp.message_handler(commands="about")
-async def cmd_about(message: types.Message):
+async def process_about_command(message: types.Message):
     await message.answer("Weather Bot is @PythonEater personal bot, which will send daily and "
                          "week forecast. Work in progress.")
 
 
 @dp.message_handler(content_types=ContentType.LOCATION)
-async def cmd_geotag_message(message: types.Message):
+async def process_geotag_command(message: types.Message):
+    print(message)
     latitude, longitude = message["location"]["latitude"], message["location"]["longitude"]
     """city_req = json.loads(requests.get(f"https://api.openweathermap.org/geo/1.0/reverse"
                                    f"?lat={latitude}&lon={longitude}&limit=1&appid={KEY}").text)
@@ -194,13 +200,13 @@ async def cmd_geotag_message(message: types.Message):
         case _:
 
             await message.reply(
-                f'{message["from"]["first_name"]}’s location\n'
+                f'<b>{message["from"]["first_name"]}’s location\n</b>'
                 f'{emoji.emojize(f":thermometer:")}'
                 f'Temperature: {round(float(req["main"]["temp"]))}\u00A0°C,\n'
                 f'{emoji.emojize(f":dashing_away:")}'
                 f'Wind speed: {req["wind"]["speed"]}\u00A0m/s,\n'
                 f'{emoji.emojize(f":droplet:")}'
-                f'Humidity: {req["main"]["humidity"]}%.'.lstrip())
+                f'Humidity: {req["main"]["humidity"]}%.'.lstrip(), parse_mode=ParseMode.HTML)
 
 
 def name_exception(req):
