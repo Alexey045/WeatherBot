@@ -72,9 +72,10 @@ async def weather_request(message: types.Message):
                             f"https://api.openweathermap.org/data/2.5/onecall"
                             f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
                             f"&units=metric&appid={KEY}").text)
+                    city_name = name_exception(city_req)
                     await message.reply(
                         f'{emoji.emojize(f":cityscape:")} '
-                        f'<b>{city_req[0]["name"]}</b>\n\n' + "\n".join(
+                        f'<b>{city_name}</b>\n\n' + "\n".join(
                             str(emoji.emojize(f":keycap_{i + 1}:") + " " +
                                 f"<b>"
                                 + datetime.datetime.fromtimestamp(
@@ -151,7 +152,7 @@ async def weather_request(message: types.Message):
                             await message.reply(
                                 f'{emoji.emojize(f":cityscape:")} '
                                 f'<b>'
-                                f'{city_name}:'
+                                f'{city_name}'
                                 f' {round(float(req["main"]["temp"]))}\u00A0{"°C"}\n'
                                 f'</b>'
                                 f'{emoji.emojize(f":thermometer:")} '
