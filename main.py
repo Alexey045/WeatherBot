@@ -9,6 +9,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import ContentType, ParseMode
 import emoji
 
+from Dictionaries.text import response
+
 # from aiogram.utils.markdown import *
 
 bot_token = getenv("BOT_TOKEN")
@@ -24,14 +26,6 @@ logging.basicConfig(level=logging.INFO)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
-response = {
-    "en": {"temp": "Feels like",
-           "wind": "Winds speed", "hum": "Humidity", "metrics": "m/s"},
-    "ru": {"temp": "Ощущается как",
-           "wind": "Скорость ветра", "hum": "Влажность", "metrics": "м/с"},
-    "uk": {"temp": "Відчувається як",
-           "wind": "Швидкість вітру", "hum": "Вологість", "metrics": "м/с"}
-}
 lang = "en"
 
 weather_descriptions = {"01": f"{emoji.emojize(f':sun:')}",
@@ -46,11 +40,11 @@ weather_descriptions = {"01": f"{emoji.emojize(f':sun:')}",
 
 
 @dp.message_handler(commands=['daily'], content_types=[ContentType.TEXT])
-async def weather_request(message: types.Message):
+async def process_daily_command(message: types.Message):
     print(message)
     city = str(message["text"]).lstrip("/daily").strip()
     if len(city) != 0:
-        if city.isnumeric():
+        if city.isnumeric() or "&" in city:
             await message.reply("Please, write name of the city.")
         else:
             if len(city) > 150:  # city name must be less than 150 chars
@@ -104,19 +98,19 @@ async def weather_request(message: types.Message):
 
 
 @dp.message_handler(commands=['settings'], content_types=[ContentType.TEXT])
-async def settings(message: types.Message):
+async def process_settings_command(message: types.Message):
     await message.answer('Your settings:\n'
                          '\t daily:\n'
                          '\t current:')
 
 
 @dp.message_handler(commands=['current'], content_types=[ContentType.TEXT])
-async def weather_request(message: types.Message):
+async def process_current_command(message: types.Message):
     print(datetime.datetime.now())
     print(message)
     city = str(message["text"]).lstrip("/current").strip()
     if len(city) != 0:
-        if city.isnumeric():
+        if city.isnumeric() or "&" in city:
             await message.reply("Please, write name of the city.")
         else:
             if len(city) > 150:  # WTF IS THAT??? city name must be less than 150 chars
@@ -172,13 +166,13 @@ async def weather_request(message: types.Message):
         await message.reply("Please, write name of the city.")
 
 
-@dp.message_handler(commands="help")
+@dp.message_handler(commands=["help"])
 async def process_help_command(message: types.Message):
     await message.answer("/current [city name] - current weather\n"
                          "/daily [city name] - daily weather forecast")
 
 
-@dp.message_handler(commands="about")
+@dp.message_handler(commands=["about"])
 async def process_about_command(message: types.Message):
     await message.answer("Weather Bot is @PythonEater personal bot, which will send daily and "
                          "week forecast. Work in progress.")
