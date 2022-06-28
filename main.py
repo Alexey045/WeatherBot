@@ -263,6 +263,7 @@ async def get_current(message, city: str):
                     case _:
                         await fun(message, city_req, req)
             else:
+                await CurrentForm.city.set()
                 return await message.reply(
                     "Please, write name of the city or \"cancel\" to cancel the request.")
 
