@@ -6,10 +6,14 @@ from os import getenv
 from sys import exit
 import requests
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 from aiogram.types import ContentType, ParseMode
 import emoji
 
 from Dictionaries.text import response
+
+from aiogram.dispatcher.filters.state import State, StatesGroup
 
 # from aiogram.utils.markdown import *
 
@@ -28,6 +32,15 @@ dp = Dispatcher(bot, storage=storage)
 
 lang = "en"
 
+
+class CurrentForm(StatesGroup):
+    city = State()
+
+
+class DailyForm(StatesGroup):
+    city = State()
+
+
 weather_descriptions = {"01": f"{emoji.emojize(f':sun:')}",
                         "02": f"{emoji.emojize(f':sun_behind_small_cloud:')}",
                         "03": f"{emoji.emojize(f':sun_behind_cloud:')}",
@@ -39,63 +52,71 @@ weather_descriptions = {"01": f"{emoji.emojize(f':sun:')}",
                         "50": f"{emoji.emojize(f':fog:')}"}
 
 
+async def get_daily_weather(message: types.Message, city: str):
+    if city.isnumeric() or "&" in city or "#" in city:
+        await DailyForm.city.set()
+        await message.reply("Please, write name of the city or \"cancel\" to cancel the request.")
+    else:
+        if len(city) > 150:  # city name must be less than 150 chars
+            await message.reply("Error: long name of the city.")
+            return
+        else:
+            city_req = json.loads(
+                requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+                             f"?q={city}"
+                             f"&limit=1&appid={KEY}").text)  # here was To Do
+            if 'cod' in city_req:
+                match city_req['cod']:
+                    case '404' | 404:
+                        await message.reply("Please, write name of the city.")
+                        return
+            if len(city_req) != 0:
+                req = json.loads(
+                    requests.get(
+                        f"https://api.openweathermap.org/data/2.5/onecall"
+                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
+                        f"&units=metric&appid={KEY}").text)
+                city_name = name_exception(city_req)
+                await message.reply(
+                    f'{emoji.emojize(f":cityscape:")} '
+                    f'<b>{city_name}</b>\n\n' + "\n".join(
+                        str(emoji.emojize(f":keycap_{i + 1}:") + " " +
+                            f"<b>"
+                            + datetime.datetime.fromtimestamp(
+                            req["daily"][i]["dt"]).strftime(
+                            '%B %d, %A')) +
+                        f"</b>" +
+                        f":\n    {emoji.emojize(':sun:')} "
+                        f"Morning: "
+                        f"{round(float(req['daily'][i]['temp']['morn']))}"
+                        f"\u00A0°C,"
+                        f" Day: "
+                        f"{round(float(req['daily'][i]['temp']['day']))}"
+                        f"\u00A0°C."
+                        f"\n    {emoji.emojize(':new_moon_face:')} "
+                        f"Eve: "
+                        f"{round(float(req['daily'][i]['temp']['eve']))}"
+                        f"\u00A0°C,"
+                        f" Night: "
+                        f"{round(float(req['daily'][i]['temp']['night']))}"
+                        f"\u00A0°C.\n"
+                        for i in range(len(req["daily"]) - 1)),
+                    parse_mode=ParseMode.HTML)
+            else:
+                await DailyForm.city.set()
+                await message.reply(
+                    "Please, write name of the city or \"cancel\" to cancel the request.")
+
+
 @dp.message_handler(commands=['daily'], content_types=[ContentType.TEXT])
 async def process_daily_command(message: types.Message):
     print(message)
     city = str(message["text"]).lstrip("/daily").strip()
     if len(city) != 0:
-        if city.isnumeric() or "&" in city or "#" in city:
-            await message.reply("Please, write name of the city.")
-        else:
-            if len(city) > 150:  # city name must be less than 150 chars
-                await message.reply("Error: long name of the city.")
-                return
-            else:
-                city_req = json.loads(
-                    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                                 f"?q={city}"
-                                 f"&limit=1&appid={KEY}").text)  # here was To Do
-                if 'cod' in city_req:
-                    match city_req['cod']:
-                        case '404' | 404:
-                            await message.reply("Please, write name of the city.")
-                            return
-                if len(city_req) != 0:
-                    req = json.loads(
-                        requests.get(
-                            f"https://api.openweathermap.org/data/2.5/onecall"
-                            f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
-                            f"&units=metric&appid={KEY}").text)
-                    city_name = name_exception(city_req)
-                    await message.reply(
-                        f'{emoji.emojize(f":cityscape:")} '
-                        f'<b>{city_name}</b>\n\n' + "\n".join(
-                            str(emoji.emojize(f":keycap_{i + 1}:") + " " +
-                                f"<b>"
-                                + datetime.datetime.fromtimestamp(
-                                req["daily"][i]["dt"]).strftime(
-                                '%B %d, %A')) +
-                            f"</b>" +
-                            f":\n    {emoji.emojize(':sun:')} "
-                            f"Morning: "
-                            f"{round(float(req['daily'][i]['temp']['morn']))}"
-                            f"\u00A0°C,"
-                            f" Day: "
-                            f"{round(float(req['daily'][i]['temp']['day']))}"
-                            f"\u00A0°C."
-                            f"\n    {emoji.emojize(':new_moon_face:')} "
-                            f"Eve: "
-                            f"{round(float(req['daily'][i]['temp']['eve']))}"
-                            f"\u00A0°C,"
-                            f" Night: "
-                            f"{round(float(req['daily'][i]['temp']['night']))}"
-                            f"\u00A0°C.\n"
-                            for i in range(len(req["daily"]) - 1)),
-                        parse_mode=ParseMode.HTML)
-                else:
-                    await message.reply("Please, write name of the city.")
+        await get_daily_weather(message, city)
     else:
-        await message.reply("Please, write name of the city.")
+        await DailyForm.city.set()
+        await message.reply("Please, write name of the city or \"cancel\" to cancel the request.")
 
 
 @dp.message_handler(commands=['settings'], content_types=[ContentType.TEXT])
@@ -105,67 +126,116 @@ async def process_settings_command(message: types.Message):
                          '\t current:')
 
 
+async def get_current_weather(message: types.Message, city: str):
+    if city.isnumeric() or "&" in city or "#" in city:
+        await message.reply("Please, write name of the city.")
+    else:
+        if len(city) > 150:  # WTF IS THAT??? city name must be less than 150 chars
+            await message.reply("Error: long name of the city.")
+            return
+        else:
+            city_req = json.loads(
+                requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+                             f"?q={city}"
+                             f"&limit=1&appid={KEY}").text)
+            print(city_req)
+            if 'cod' in city_req:
+                match city_req['cod']:
+                    case '404' | 404:
+                        await message.reply('Please, write name of the city.')
+                        return
+            if len(city_req) != 0:
+                req = json.loads(
+                    requests.get(
+                        f"https://api.openweathermap.org/data/2.5/weather"
+                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
+                        f"&units=metric&appid={KEY}").text)
+                print(req)
+                match req["cod"]:
+                    case '404' | 404 | '400' | 400:
+                        # await message.reply(req["message"].capitalize() + '.')
+                        await message.reply("Error 404: city not found")
+                    case '401' | 401:
+                        await message.reply("Please, write name of the city.")
+                        # await message.reply("Invalid API key.")
+                    case _:
+                        city_name = name_exception(city_req)
+                        await message.reply(
+                            f'{emoji.emojize(f":cityscape:")} '
+                            f'<b>'
+                            f'{city_name}'
+                            f' {round(float(req["main"]["temp"]))}\u00A0{"°C"}\n'
+                            f'</b>'
+                            f'{emoji.emojize(f":thermometer:")} '
+                            f'{response[lang]["temp"]}:'
+                            f' {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
+                            f'{weather_descriptions[str(req["weather"][0]["icon"])[:-1]]}'
+                            f' {str(req["weather"][0]["description"]).capitalize()}\n'
+                            f'{emoji.emojize(f":dashing_away:")} '
+                            f'{response[lang]["wind"]}:'
+                            f' {req["wind"]["speed"]}\u00A0{response[lang]["metrics"]}\n'
+                            f'{emoji.emojize(f":droplet:")} '
+                            f'{response[lang]["hum"]}: '
+                            f'{req["main"]["humidity"]}%',
+                            parse_mode=ParseMode.HTML)
+            else:
+                await CurrentForm.city.set()
+                await message.reply("Please, write name of the city or \"cancel\" to cancel the request.")
+
+
 @dp.message_handler(commands=['current'], content_types=[ContentType.TEXT])
 async def process_current_command(message: types.Message):
-    print(datetime.datetime.now())
+    # print(datetime.datetime.now())
     print(message)
     city = str(message["text"]).lstrip("/current").strip()
     if len(city) != 0:
-        if city.isnumeric() or "&" in city or "#" in city:
-            await message.reply("Please, write name of the city.")
-        else:
-            if len(city) > 150:  # WTF IS THAT??? city name must be less than 150 chars
-                await message.reply("Error: long name of the city.")
-                return
-            else:
-                city_req = json.loads(
-                    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                                 f"?q={city}"
-                                 f"&limit=1&appid={KEY}").text)
-                print(city_req)
-                if 'cod' in city_req:
-                    match city_req['cod']:
-                        case '404' | 404:
-                            await message.reply('Please, write name of the city.')
-                            return
-                if len(city_req) != 0:
-                    req = json.loads(
-                        requests.get(
-                            f"https://api.openweathermap.org/data/2.5/weather"
-                            f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
-                            f"&units=metric&appid={KEY}").text)
-                    print(req)
-                    match req["cod"]:
-                        case '404' | 404 | '400' | 400:
-                            # await message.reply(req["message"].capitalize() + '.')
-                            await message.reply("Error 404: city not found")
-                        case '401' | 401:
-                            await message.reply("Please, write name of the city.")
-                            # await message.reply("Invalid API key.")
-                        case _:
-                            city_name = name_exception(city_req)
-                            await message.reply(
-                                f'{emoji.emojize(f":cityscape:")} '
-                                f'<b>'
-                                f'{city_name}'
-                                f' {round(float(req["main"]["temp"]))}\u00A0{"°C"}\n'
-                                f'</b>'
-                                f'{emoji.emojize(f":thermometer:")} '
-                                f'{response[lang]["temp"]}:'
-                                f' {round(float(req["main"]["feels_like"]))}\u00A0°C\n'
-                                f'{weather_descriptions[str(req["weather"][0]["icon"])[:-1]]}'
-                                f' {str(req["weather"][0]["description"]).capitalize()}\n'
-                                f'{emoji.emojize(f":dashing_away:")} '
-                                f'{response[lang]["wind"]}:'
-                                f' {req["wind"]["speed"]}\u00A0{response[lang]["metrics"]}\n'
-                                f'{emoji.emojize(f":droplet:")} '
-                                f'{response[lang]["hum"]}: '
-                                f'{req["main"]["humidity"]}%',
-                                parse_mode=ParseMode.HTML)
-                else:
-                    await message.reply("Please, write name of the city.")
+        await get_current_weather(message, city)
     else:
-        await message.reply("Please, write name of the city.")
+        await CurrentForm.city.set()
+        await message.reply("Please, write name of the city or \"cancel\" to cancel the request.")
+
+
+@dp.message_handler(state=[CurrentForm.city, DailyForm.city], commands='cancel')
+@dp.message_handler(Text(equals='cancel', ignore_case=True), state=[CurrentForm.city, DailyForm.city])
+async def cancel_handler(message: types.Message, state: FSMContext):
+    """
+    Allow user to cancel any action
+    """
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+
+    logging.info('Cancelling state %r', current_state)
+    # Cancel state and inform user about it
+    await state.finish()
+    # And remove keyboard (just in case)
+    await message.reply('Cancelled.')
+
+
+@dp.message_handler(state=CurrentForm.city)
+async def process_current_city(message: types.Message, state: FSMContext):
+    """
+    Process user name
+    """
+    await state.update_data(city=str(message.text))
+    async with state.proxy() as data:
+        await get_current_weather(message, data["city"])
+
+    # Finish conversation
+    await state.finish()
+
+
+@dp.message_handler(state=DailyForm.city)
+async def process_daily_city(message: types.Message, state: FSMContext):
+    """
+    Process user name
+    """
+    await state.update_data(city=str(message.text))
+    async with state.proxy() as data:
+        await get_daily_weather(message, data["city"])
+
+    # Finish conversation
+    await state.finish()
 
 
 @dp.message_handler(commands=["help"])
