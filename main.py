@@ -307,12 +307,14 @@ def name_exception(req):
         city = req[0]["name"]
     return city
 
+
 def name_exception_inline(req):
     try:  # ToDo
         city = req["local_names"][lang]
     except KeyError:
         city = req["name"]
     return city
+
 
 def catch_error(code) -> bool:
     match code:
