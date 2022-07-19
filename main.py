@@ -308,7 +308,7 @@ def name_exception(req):
     return city
 
 
-def name_exception_inline(req):
+def name_exc_inline(req):
     try:  # ToDo
         city = req["local_names"][lang]
     except KeyError:
@@ -423,7 +423,7 @@ async def get_current_inline(city: str):
 
 
 def fun_inline(city_req, req) -> str:
-    city_name = name_exception_inline(city_req)
+    city_name = name_exc_inline(city_req)
     flag = unic[city_req["country"][0]] + unic[city_req["country"][1]]
     print(flag)
     return (flag + " " +
@@ -454,8 +454,16 @@ async def inline_echo(inline_query: InlineQuery) -> None:
                      f"?q={city}"
                      f"&limit=5&appid={KEY}").text)
     city_list = []
-    print(city_req)
+    previous_country = ""
+    previous_state = ""
     for ci in city_req:
+        country = ci["country"]
+        state = ci["state"] if "state" in ci else "1"
+        if previous_state == state and previous_country == country:
+            continue
+        if city.lower() in ci["name"].lower():
+            city_list.append(ci)
+            continue
         if "local_names" in ci:
             for c in city_words:
                 flag = False
@@ -466,13 +474,12 @@ async def inline_echo(inline_query: InlineQuery) -> None:
                         break
                 if flag:
                     break
+        previous_country = ci["country"]
+        previous_state = ci["state"] if "state" in ci else ""
 
     city_req = city_list
-    print(city_req)
 
     for num in range(len(city_req)):
-        # if city not in city_req[num]["local_names"]:
-        #    continue
         if get_geocoding_exceptions(city_req[num]) is None:
             req = json.loads(
                 requests.get(
@@ -483,13 +490,18 @@ async def inline_echo(inline_query: InlineQuery) -> None:
             input_content = InputTextMessageContent(answer, parse_mode=ParseMode.HTML)
             if get_searching_exceptions(req) is None:
                 result.append(InlineQueryResultArticle(id=f"{num}",
-                                                       title=f'{emoji.emojize(":cityscape:")} {name_exception_inline(city_req[num]).upper()} ',
+                                                       title=f'{emoji.emojize(":cityscape:")}'
+                                                             f' {name_exc_inline(city_req[num]).upper()} ',
                                                        input_message_content=input_content,
                                                        description=f"{city_req[num]['country']}, "
-                                                                   f"{city_req[num]['state'] if 'state' in city_req[num] else city_req[num]['country']}.",
+                                                                   f"{get_city_state(city_req[num])}.",
                                                        thumb_url=previews[
                                                            str(req["weather"][0]["icon"])[:-1]], ))
     await inline_query.answer(result, cache_time=1, is_personal=True)
+
+
+def get_city_state(city):
+    return city['state'] if 'state' in city else city['country']
 
 
 if __name__ == '__main__':
