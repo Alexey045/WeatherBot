@@ -10,8 +10,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import ContentType, ParseMode
 import emoji
-
-from Dictionaries.text import response
+from Dictionaries import response
 
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
