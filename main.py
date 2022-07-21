@@ -1,20 +1,23 @@
+# aiogram import
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.types import ContentType, ParseMode, InputTextMessageContent, InlineQueryResultArticle, \
-    InlineQuery
+from aiogram.types import ContentType, ParseMode, \
+    InputTextMessageContent, InlineQueryResultArticle, InlineQuery
 
+# 3rd party libraries
 from orjson import loads
-# from aiohttp import ClientSession
 from datetime import datetime
-import logging
+from logging import basicConfig, INFO, info
 from os import getenv
 from sys import exit
-# import requests
 from emoji import emojize
-from Dictionaries import response, unicode_reg_sym, previews, weather_descriptions
-from Exceptions import get_geocoding_exceptions, get_searching_exceptions, name_exception
+
+# My packages
+from Dictionaries import response, previews, weather_descriptions
+from Exceptions import get_geocoding_exceptions, name_exception
+from States import CurrentForm, DailyForm
+from others import fetch, get_flag_emoji, get_city_state
 
 bot_token = getenv("BOT_TOKEN")
 KEY = getenv("OWM_KEY")
@@ -23,27 +26,19 @@ if not bot_token:
 if not KEY:
     exit("Error: no API key provided")
 
-bot = Bot(token=bot_token)
+bot: Bot = Bot(token=bot_token)
 
-logging.basicConfig(level=logging.INFO)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+basicConfig(level=INFO)
+storage: MemoryStorage = MemoryStorage()
+dp: Dispatcher = Dispatcher(bot, storage=storage)
 
 lang: str = "en"
 
 
-class CurrentForm(StatesGroup):
-    city = State()
-
-
-class DailyForm(StatesGroup):  # ToDo
-    city = State()
-
-
 @dp.message_handler(commands=['daily'], content_types=[ContentType.TEXT])
 async def process_daily_command(message: types.Message) -> None:
-    print(message)
-    city = " ".join(str(message.text).split(" ")[1:]).strip()
+    info(message)
+    city: str = " ".join(str(message.text).split(" ")[1:]).strip()
     if len(city) != 0:
         await get_daily(message, city)
     else:
@@ -60,9 +55,8 @@ async def process_settings_command(message: types.Message) -> None:
 
 @dp.message_handler(commands=['current'], content_types=[ContentType.TEXT])
 async def process_current_command(message: types.Message) -> None:
-    print(message)
-    city = " ".join(str(message.text).split(" ")[1:]).strip()
-    print(city)
+    info(message)
+    city: str = " ".join(str(message.text).split(" ")[1:]).strip()
     if len(city) != 0:
         await get_current(message, city)
     else:
@@ -115,29 +109,26 @@ async def process_geotag_command(message: types.Message) -> None:
                 parse_mode=ParseMode.HTML)
 
 
-@dp.message_handler(state=[CurrentForm.city, DailyForm.city], commands='cancel')  # ToDo
+@dp.message_handler(state=[CurrentForm.city, DailyForm.city], commands='cancel')  # ToDo finish it
 async def cancel_handler(message: types.Message, state: FSMContext) -> None:
     """
     Allow user to cancel any action
     """
-    current_state = await state.get_state()
+    current_state: str = await state.get_state()
     if current_state is None:
         return
 
-    logging.info('Cancelling state %r', current_state)
+    info('Cancelling state %r', current_state)
     # Cancel state and inform user about it
     await state.finish()
-    # And remove keyboard (just in case)
     await message.reply('Cancelled.')
-    # await message.delete()
 
 
 @dp.message_handler(state=DailyForm.city)
 async def get_daily_weather(message: types.Message, state: FSMContext) -> None:
-    city = message.text
+    city: str = message.text
     if city.isnumeric() or "&" in city or "#" in city:
         return
-    #  return await message.reply("Please, write name of the city or \"cancel\" to cancel the request.")
     else:
         if len(city) > 150:  # city name must be less than 150 chars
             await message.reply("Error: long name of the city.")
@@ -175,8 +166,8 @@ async def get_daily_weather(message: types.Message, state: FSMContext) -> None:
 
 @dp.message_handler(state=CurrentForm.city)
 async def get_current_weather_form(message, state: FSMContext) -> None:
-    city = message.text
-    print(city)
+    city: str = message.text
+    info(city)
     if city.isnumeric() or "&" in city or "#" in city:
         await message.reply("Please, write name of the city.")
         return
@@ -217,7 +208,8 @@ async def get_current_weather_form(message, state: FSMContext) -> None:
                         await message.reply("Please, write name of the city.")
                         # await message.reply("Invalid API key.")
                     case _:
-                        await message.reply(fun(city_req[0], req), parse_mode=ParseMode.HTML)
+                        await message.reply(get_current_weather(city_req[0], req),
+                                            parse_mode=ParseMode.HTML)
                         await state.finish()
             else:
                 return
@@ -264,7 +256,8 @@ async def get_current(message: types.Message, city: str):  # ToDo
                         await message.reply("Please, write name of the city.")
                         # await message.reply("Invalid API key.")
                     case _:
-                        await message.reply(fun(city_req[0], req), parse_mode=ParseMode.HTML)
+                        await message.reply(get_current_weather(city_req[0], req),
+                                            parse_mode=ParseMode.HTML)
             else:
                 await CurrentForm.city.set()
                 return await message.reply(
@@ -312,34 +305,32 @@ async def get_daily(message: types.Message, city: str):  # ToDo
 async def fun_daily(message: types.Message, city_req: dict, req: dict) -> None:
     city_name = name_exception(city_req)
     flag = get_flag_emoji(city_req["country"])
-    await message.reply(
-        f'{flag} '
-        f'<b>{city_name}</b>\n\n' + "\n".join(
-            str(emojize(f":keycap_{i + 1}:") + " " +
-                f"<b>"
-                + datetime.fromtimestamp(
-                req["daily"][i]["dt"]).strftime(
-                '%B %d, %A')) +
-            f"</b>" +
-            f":\n    {emojize(':sun:')} "
-            f"Morning: "
-            f"{round(float(req['daily'][i]['temp']['morn']))}"
-            f"\u00A0°C,"
-            f" Day: "
-            f"{round(float(req['daily'][i]['temp']['day']))}"
-            f"\u00A0°C."
-            f"\n    {emojize(':new_moon_face:')} "
-            f"Eve: "
-            f"{round(float(req['daily'][i]['temp']['eve']))}"
-            f"\u00A0°C,"
-            f" Night: "
-            f"{round(float(req['daily'][i]['temp']['night']))}"
-            f"\u00A0°C.\n"
-            for i in range(len(req["daily"]) - 1)),
-        parse_mode=ParseMode.HTML)
+    await message.reply((f"{flag} <b>{city_name}</b>\n\n" + "\n\n".join(
+        str(emojize(f":keycap_{i + 1}:") + " " +
+            f"<b>"
+            + datetime.fromtimestamp(
+            req["daily"][i]["dt"]).strftime(
+            '%B %d, %A')) +
+        f"</b>" +
+        f":\n\t\t{emojize(':sun:')} "
+        f"Morning: "
+        f"{round(float(req['daily'][i]['temp']['morn']))}"
+        f"\u00A0°C,"
+        f" Day: "
+        f"{round(float(req['daily'][i]['temp']['day']))}"
+        f"\u00A0°C."
+        f"\n\t\t{emojize(':new_moon_face:')} "
+        f"Eve: "
+        f"{round(float(req['daily'][i]['temp']['eve']))}"
+        f"\u00A0°C,"
+        f" Night: "
+        f"{round(float(req['daily'][i]['temp']['night']))}"
+        f"\u00A0°C."
+        for i in range(len(req["daily"]) - 1))),
+                        parse_mode=ParseMode.HTML)
 
 
-async def get_current_inline(city: str):  # ToDo
+async def get_current_inline(city: str) -> str | None:  # ToDo
     if city.isnumeric() or "&" in city or "#" in city:
         return
     else:
@@ -377,13 +368,13 @@ async def get_current_inline(city: str):  # ToDo
                         return
                         # await message.reply("Invalid API key.")
                     case _:
-                        return fun(city_req, req)
+                        return get_current_weather(city_req, req)
             else:
                 return
 
 
-def fun(city_req: dict, req: dict) -> str:  # ToDo rename function
-    city_name = name_exception(city_req)
+def get_current_weather(city_req: dict, req: dict) -> str:
+    city_name: str = name_exception(city_req)
     flag: str = get_flag_emoji(city_req["country"])
     return (flag + " " +
             f'<b>'
@@ -404,9 +395,9 @@ def fun(city_req: dict, req: dict) -> str:  # ToDo rename function
 
 
 @dp.inline_handler()
-async def inline_search(inline_query: InlineQuery) -> None:
-    result = []
-    city = inline_query.query
+async def inline_search(inline_query: InlineQuery) -> None:  # ToDo rewrite this function
+    result: list = []
+    city: str = inline_query.query
     if len(city) == 0:
         return
     city_words = city.split()
@@ -431,7 +422,7 @@ async def inline_search(inline_query: InlineQuery) -> None:
             continue
         if "local_names" in ci:
             for c in city_words:
-                flag = False
+                flag: bool = False
                 for name in ci["local_names"].values():
                     if c.lower() in name.lower():
                         flag = True
@@ -445,40 +436,28 @@ async def inline_search(inline_query: InlineQuery) -> None:
     city_req = city_list
 
     for num in range(len(city_req)):
-        if get_geocoding_exceptions(city_req[num]) is None:
-            req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
-                                    f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
-                                    f"&units=metric&appid={KEY}", await bot.get_session()))
-            # req = loads(
-            #    requests.get(
-            #        f"https://api.openweathermap.org/data/2.5/weather"
-            #        f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
-            #        f"&units=metric&appid={KEY}").text)
-            answer = fun(city_req[num], req)
-            input_content = InputTextMessageContent(answer, parse_mode=ParseMode.HTML)
-            if get_searching_exceptions(req) is None:
-                result.append(InlineQueryResultArticle(id=f"{num}",
-                                                       title=f'{emojize(":cityscape:")}'
-                                                             f' {name_exception(city_req[num]).upper()} ',
-                                                       input_message_content=input_content,
-                                                       description=f"{city_req[num]['country']}, "
-                                                                   f"{get_city_state(city_req[num])}.",
-                                                       thumb_url=previews[
-                                                           str(req["weather"][0]["icon"])[:-1]], ))
-    await inline_query.answer(result, cache_time=1, is_personal=True)
+        get_geocoding_exceptions(city_req[num])
+        req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
+                                f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
+                                f"&units=metric&appid={KEY}", await bot.get_session()))
+        # req = loads(
+        #    requests.get(
+        #        f"https://api.openweathermap.org/data/2.5/weather"
+        #        f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
+        #        f"&units=metric&appid={KEY}").text)
+        answer = get_current_weather(city_req[num], req)
+        input_content = InputTextMessageContent(answer, parse_mode=ParseMode.HTML)
+        get_geocoding_exceptions(req)
+        result.append(InlineQueryResultArticle(id=f"{num}",
+                                               title=f'{emojize(":cityscape:")}'
+                                                     f' {name_exception(city_req[num]).upper()} ',
+                                               input_message_content=input_content,
+                                               description=f"{city_req[num]['country']}, "
+                                                           f"{get_city_state(city_req[num])}.",
+                                               thumb_url=previews[
+                                                   str(req["weather"][0]["icon"])[:-1]], ))
 
-
-async def fetch(url, session):
-    async with session.get(url) as request:
-        return await request.text()
-
-
-def get_city_state(city: dict) -> str:
-    return city['state'] if 'state' in city else city['country']
-
-
-def get_flag_emoji(country: str) -> str:
-    return unicode_reg_sym[country[0]] + unicode_reg_sym[country[1]]
+    await inline_query.answer(result, cache_time=300)
 
 
 if __name__ == '__main__':
