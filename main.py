@@ -1,17 +1,19 @@
-import datetime
-import json
-import logging
 from aiogram import Bot, Dispatcher, executor, types
-from os import getenv
-from sys import exit
-import requests
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import ContentType, ParseMode, InputTextMessageContent, InlineQueryResultArticle, \
     InlineQuery
+
+from orjson import loads
+# from aiohttp import ClientSession
+from datetime import datetime
+import logging
+from os import getenv
+from sys import exit
+# import requests
 from emoji import emojize
 from Dictionaries import response, unicode_reg_sym, previews, weather_descriptions
-from aiogram.dispatcher.filters.state import State, StatesGroup
 from Exceptions import get_geocoding_exceptions, get_searching_exceptions, name_exception
 
 bot_token = getenv("BOT_TOKEN")
@@ -84,13 +86,13 @@ async def process_about_command(message: types.Message) -> None:
 async def process_geotag_command(message: types.Message) -> None:
     print(message)
     latitude, longitude = message["location"]["latitude"], message["location"]["longitude"]
-    """city_req = json.loads(requests.get(f"https://api.openweathermap.org/geo/1.0/reverse"
-                                   f"?lat={latitude}&lon={longitude}&limit=1&appid={KEY}").text)
-    city_name = name_exception(city_req)"""
-    req = json.loads(requests.get(
-        f"https://api.openweathermap.org/data/2.5/weather"
-        f"?lat={latitude}&lon={longitude}&units=metric&appid={KEY}").text)
-    # &lang={message.from_user.language_code}
+    req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
+                            f"?lat={latitude}&lon={longitude}&units=metric&appid={KEY}",
+                            await bot.get_session()))
+    # async with ClientSession() as session:
+    #    async with session.get(f"https://api.openweathermap.org/data/2.5/weather"
+    #                           f"?lat={latitude}&lon={longitude}&units=metric&appid={KEY}") as request:
+    #        req = loads(await request.text())
     match req['cod']:
         case '404' | 404 | '400' | 400 | '401' | 401:  # is 400 possible?
             await message.reply("Please, write name of the city.")
@@ -141,21 +143,28 @@ async def get_daily_weather(message: types.Message, state: FSMContext) -> None:
             await message.reply("Error: long name of the city.")
             return
         else:
-            city_req = json.loads(
-                requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                             f"?q={city}"
-                             f"&limit=1&appid={KEY}").text)  # here was To Do
+            city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
+                                         f"?q={city}"
+                                         f"&limit=1&appid={KEY}",
+                                         await bot.get_session()))
+            # city_req = loads(
+            #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+            #                 f"?q={city}"
+            #                 f"&limit=1&appid={KEY}").text)  # here was To Do
             if 'cod' in city_req:
                 match city_req['cod']:
                     case '404' | 404:
                         await message.reply("Please, write name of the city.")
                         return
             if len(city_req) != 0:
-                req = json.loads(
-                    requests.get(
-                        f"https://api.openweathermap.org/data/2.5/onecall"
-                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
-                        f"&units=metric&appid={KEY}").text)
+                req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/onecall"
+                                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
+                                        f"&units=metric&appid={KEY}", await bot.get_session()))
+                # req = loads(
+                #    requests.get(
+                #        f"https://api.openweathermap.org/data/2.5/onecall"
+                #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
+                #        f"&units=metric&appid={KEY}").text)
                 await fun_daily(message, city_req[0], req)
                 await state.finish()
             else:
@@ -176,10 +185,14 @@ async def get_current_weather_form(message, state: FSMContext) -> None:
             await message.reply("Error: long name of the city.")
             return
         else:
-            city_req = json.loads(
-                requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                             f"?q={city}"
-                             f"&limit=1&appid={KEY}").text)
+            city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
+                                         f"?q={city}"
+                                         f"&limit=1&appid={KEY}",
+                                         await bot.get_session()))
+            # city_req = loads(
+            #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+            #                 f"?q={city}"
+            #                 f"&limit=1&appid={KEY}").text)
             print(city_req)
             if 'cod' in city_req:
                 match city_req['cod']:
@@ -187,11 +200,14 @@ async def get_current_weather_form(message, state: FSMContext) -> None:
                         await message.reply('Please, write name of the city.')
                         return
             if len(city_req) != 0:
-                req = json.loads(
-                    requests.get(
-                        f"https://api.openweathermap.org/data/2.5/weather"
-                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
-                        f"&units=metric&appid={KEY}").text)
+                req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
+                                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
+                                        f"&units=metric&appid={KEY}", await bot.get_session()))
+                # req = loads(
+                #    requests.get(
+                #        f"https://api.openweathermap.org/data/2.5/weather"
+                #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
+                #        f"&units=metric&appid={KEY}").text)
                 print(req)
                 match req["cod"]:
                     case '404' | 404 | '400' | 400:
@@ -216,10 +232,14 @@ async def get_current(message: types.Message, city: str):  # ToDo
         if len(city) > 150:  # WTF IS THAT??? city name must be less than 150 chars
             return await message.reply("Error: long name of the city.")
         else:
-            city_req = json.loads(
-                requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                             f"?q={city}"
-                             f"&limit=1&appid={KEY}").text)
+            city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
+                                         f"?q={city}"
+                                         f"&limit=1&appid={KEY}",
+                                         await bot.get_session()))
+            # city_req = loads(
+            #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+            #                 f"?q={city}"
+            #                 f"&limit=1&appid={KEY}").text)
             print(city_req)
             if 'cod' in city_req:
                 match city_req['cod']:
@@ -227,11 +247,14 @@ async def get_current(message: types.Message, city: str):  # ToDo
                         await message.reply('Please, write name of the city.')
                         return
             if len(city_req) != 0:
-                req = json.loads(
-                    requests.get(
-                        f"https://api.openweathermap.org/data/2.5/weather"
-                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
-                        f"&units=metric&appid={KEY}").text)
+                req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
+                                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
+                                        f"&units=metric&appid={KEY}", await bot.get_session()))
+                # req = loads(
+                #    requests.get(
+                #        f"https://api.openweathermap.org/data/2.5/weather"
+                #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
+                #        f"&units=metric&appid={KEY}").text)
                 print(req)
                 match req["cod"]:
                     case '404' | 404 | '400' | 400:
@@ -257,21 +280,28 @@ async def get_daily(message: types.Message, city: str):  # ToDo
             await message.reply("Error: long name of the city.")
             return
         else:
-            city_req = json.loads(
-                requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                             f"?q={city}"
-                             f"&limit=1&appid={KEY}").text)  # here was To Do
+            city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
+                                         f"?q={city}"
+                                         f"&limit=1&appid={KEY}",
+                                         await bot.get_session()))
+            # city_req = loads(
+            #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+            #                 f"?q={city}"
+            #                 f"&limit=1&appid={KEY}").text)  # here was To Do
             if 'cod' in city_req:
                 match city_req['cod']:
                     case '404' | 404:
                         await message.reply("Please, write name of the city.")
                         return
             if len(city_req) != 0:
-                req = json.loads(
-                    requests.get(
-                        f"https://api.openweathermap.org/data/2.5/onecall"
-                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
-                        f"&units=metric&appid={KEY}").text)
+                req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/onecall"
+                                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
+                                        f"&units=metric&appid={KEY}", await bot.get_session()))
+                # req = loads(
+                #    requests.get(
+                #        f"https://api.openweathermap.org/data/2.5/onecall"
+                #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
+                #        f"&units=metric&appid={KEY}").text)
                 await fun_daily(message, city_req[0], req)
             else:
                 await DailyForm.city.set()
@@ -287,7 +317,7 @@ async def fun_daily(message: types.Message, city_req: dict, req: dict) -> None:
         f'<b>{city_name}</b>\n\n' + "\n".join(
             str(emojize(f":keycap_{i + 1}:") + " " +
                 f"<b>"
-                + datetime.datetime.fromtimestamp(
+                + datetime.fromtimestamp(
                 req["daily"][i]["dt"]).strftime(
                 '%B %d, %A')) +
             f"</b>" +
@@ -316,21 +346,28 @@ async def get_current_inline(city: str):  # ToDo
         if len(city) > 150:  # WTF IS THAT??? city name must be less than 150 chars
             return
         else:
-            city_req = json.loads(
-                requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                             f"?q={city}"
-                             f"&limit=1&appid={KEY}").text)
+            city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
+                                         f"?q={city}"
+                                         f"&limit=1&appid={KEY}",
+                                         await bot.get_session()))
+            # city_req = loads(
+            #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+            #                 f"?q={city}"
+            #                 f"&limit=1&appid={KEY}").text)
             print(city_req)
             if 'cod' in city_req:
                 match city_req['cod']:
                     case '404' | 404:
                         return
             if len(city_req) != 0:
-                req = json.loads(
-                    requests.get(
-                        f"https://api.openweathermap.org/data/2.5/weather"
-                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
-                        f"&units=metric&appid={KEY}").text)
+                req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
+                                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
+                                        f"&units=metric&appid={KEY}", await bot.get_session()))
+                # req = loads(
+                #    requests.get(
+                #        f"https://api.openweathermap.org/data/2.5/weather"
+                #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
+                #        f"&units=metric&appid={KEY}").text)
                 print(req)
                 match req["cod"]:
                     case '404' | 404 | '400' | 400:
@@ -373,10 +410,14 @@ async def inline_search(inline_query: InlineQuery) -> None:
     if len(city) == 0:
         return
     city_words = city.split()
-    city_req = json.loads(
-        requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-                     f"?q={city}"
-                     f"&limit=5&appid={KEY}").text)
+    city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
+                                 f"?q={city}"
+                                 f"&limit=5&appid={KEY}",
+                                 await bot.get_session()))
+    # city_req = loads(
+    #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
+    #                 f"?q={city}"
+    #                 f"&limit=5&appid={KEY}").text)
     city_list = []
     previous_country = ""
     previous_state = ""
@@ -405,11 +446,14 @@ async def inline_search(inline_query: InlineQuery) -> None:
 
     for num in range(len(city_req)):
         if get_geocoding_exceptions(city_req[num]) is None:
-            req = json.loads(
-                requests.get(
-                    f"https://api.openweathermap.org/data/2.5/weather"
-                    f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
-                    f"&units=metric&appid={KEY}").text)
+            req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
+                                    f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
+                                    f"&units=metric&appid={KEY}", await bot.get_session()))
+            # req = loads(
+            #    requests.get(
+            #        f"https://api.openweathermap.org/data/2.5/weather"
+            #        f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
+            #        f"&units=metric&appid={KEY}").text)
             answer = fun(city_req[num], req)
             input_content = InputTextMessageContent(answer, parse_mode=ParseMode.HTML)
             if get_searching_exceptions(req) is None:
@@ -422,6 +466,11 @@ async def inline_search(inline_query: InlineQuery) -> None:
                                                        thumb_url=previews[
                                                            str(req["weather"][0]["icon"])[:-1]], ))
     await inline_query.answer(result, cache_time=1, is_personal=True)
+
+
+async def fetch(url, session):
+    async with session.get(url) as request:
+        return await request.text()
 
 
 def get_city_state(city: dict) -> str:
