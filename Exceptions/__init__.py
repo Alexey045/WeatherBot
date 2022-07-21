@@ -22,9 +22,17 @@ def get_searching_exceptions(request: dict) -> str:
                 return "Error! Report @PythonEater about this!"
 
 
-def name_exception(req: dict, lang: str = "en") -> str:
+def catch_error(code) -> bool:  # ToDo
+    match code:
+        case '404' | 404 | '400' | 400 | '401' | 401:  # is 400 possible?
+            return False
+        case _:
+            return True
+
+
+def name_exception(request: dict, language: str = "en") -> str:
     try:  # ToDo
-        city = req["local_names"][lang]
+        city = request["local_names"][language]
     except KeyError:
-        city = req["name"]
+        city = request["name"]
     return city

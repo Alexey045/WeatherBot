@@ -1,3 +1,5 @@
+from emoji import emojize
+
 response = {
     "en": {"temp": "Feels like",
            "wind": "Winds speed", "hum": "Humidity", "metrics": "m/s"},
@@ -7,35 +9,35 @@ response = {
            "wind": "Швидкість вітру", "hum": "Вологість", "metrics": "м/с"}
 }
 
-unic = {"A": "\N{REGIONAL INDICATOR SYMBOL LETTER A}",
-        "B": "\N{REGIONAL INDICATOR SYMBOL LETTER B}",
-        "C": "\N{REGIONAL INDICATOR SYMBOL LETTER C}",
-        "D": "\N{REGIONAL INDICATOR SYMBOL LETTER D}",
-        "E": "\N{REGIONAL INDICATOR SYMBOL LETTER E}",
-        "F": "\N{REGIONAL INDICATOR SYMBOL LETTER F}",
-        "G": "\N{REGIONAL INDICATOR SYMBOL LETTER G}",
-        "H": "\N{REGIONAL INDICATOR SYMBOL LETTER H}",
-        "I": "\N{REGIONAL INDICATOR SYMBOL LETTER I}",
-        "J": "\N{REGIONAL INDICATOR SYMBOL LETTER J}",
-        "K": "\N{REGIONAL INDICATOR SYMBOL LETTER K}",
-        "L": "\N{REGIONAL INDICATOR SYMBOL LETTER L}",
-        "M": "\N{REGIONAL INDICATOR SYMBOL LETTER M}",
-        "N": "\N{REGIONAL INDICATOR SYMBOL LETTER N}",
-        "O": "\N{REGIONAL INDICATOR SYMBOL LETTER O}",
-        "P": "\N{REGIONAL INDICATOR SYMBOL LETTER P}",
-        "Q": "\N{REGIONAL INDICATOR SYMBOL LETTER Q}",
-        "R": "\N{REGIONAL INDICATOR SYMBOL LETTER R}",
-        "S": "\N{REGIONAL INDICATOR SYMBOL LETTER S}",
-        "T": "\N{REGIONAL INDICATOR SYMBOL LETTER T}",
-        "U": "\N{REGIONAL INDICATOR SYMBOL LETTER U}",
-        "V": "\N{REGIONAL INDICATOR SYMBOL LETTER V}",
-        "W": "\N{REGIONAL INDICATOR SYMBOL LETTER W}",
-        "X": "\N{REGIONAL INDICATOR SYMBOL LETTER X}",
-        "Y": "\N{REGIONAL INDICATOR SYMBOL LETTER Y}",
-        "Z": "\N{REGIONAL INDICATOR SYMBOL LETTER Z}",
-        }
+unicode_reg_sym: dict = {"A": "\N{REGIONAL INDICATOR SYMBOL LETTER A}",
+                         "B": "\N{REGIONAL INDICATOR SYMBOL LETTER B}",
+                         "C": "\N{REGIONAL INDICATOR SYMBOL LETTER C}",
+                         "D": "\N{REGIONAL INDICATOR SYMBOL LETTER D}",
+                         "E": "\N{REGIONAL INDICATOR SYMBOL LETTER E}",
+                         "F": "\N{REGIONAL INDICATOR SYMBOL LETTER F}",
+                         "G": "\N{REGIONAL INDICATOR SYMBOL LETTER G}",
+                         "H": "\N{REGIONAL INDICATOR SYMBOL LETTER H}",
+                         "I": "\N{REGIONAL INDICATOR SYMBOL LETTER I}",
+                         "J": "\N{REGIONAL INDICATOR SYMBOL LETTER J}",
+                         "K": "\N{REGIONAL INDICATOR SYMBOL LETTER K}",
+                         "L": "\N{REGIONAL INDICATOR SYMBOL LETTER L}",
+                         "M": "\N{REGIONAL INDICATOR SYMBOL LETTER M}",
+                         "N": "\N{REGIONAL INDICATOR SYMBOL LETTER N}",
+                         "O": "\N{REGIONAL INDICATOR SYMBOL LETTER O}",
+                         "P": "\N{REGIONAL INDICATOR SYMBOL LETTER P}",
+                         "Q": "\N{REGIONAL INDICATOR SYMBOL LETTER Q}",
+                         "R": "\N{REGIONAL INDICATOR SYMBOL LETTER R}",
+                         "S": "\N{REGIONAL INDICATOR SYMBOL LETTER S}",
+                         "T": "\N{REGIONAL INDICATOR SYMBOL LETTER T}",
+                         "U": "\N{REGIONAL INDICATOR SYMBOL LETTER U}",
+                         "V": "\N{REGIONAL INDICATOR SYMBOL LETTER V}",
+                         "W": "\N{REGIONAL INDICATOR SYMBOL LETTER W}",
+                         "X": "\N{REGIONAL INDICATOR SYMBOL LETTER X}",
+                         "Y": "\N{REGIONAL INDICATOR SYMBOL LETTER Y}",
+                         "Z": "\N{REGIONAL INDICATOR SYMBOL LETTER Z}",
+                         }
 
-previews = {
+previews: dict = {
     "01": f"https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com"
           f"/thumbs/120/apple/325/sun_2600-fe0f.png",
     "02": f"https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com"
@@ -54,3 +56,13 @@ previews = {
           f"/thumbs/120/apple/325/cloud-with-snow_1f328-fe0f.png",
     "50": f"https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com"
           f"/thumbs/120/apple/325/fog_1f32b-fe0f.png"}
+
+weather_descriptions: dict = {"01": emojize(f':sun:'),
+                              "02": emojize(f':sun_behind_small_cloud:'),
+                              "03": emojize(f':sun_behind_cloud:'),
+                              "04": emojize(f':cloud:'),
+                              "09": emojize(f':cloud_with_rain:'),
+                              "10": emojize(f':cloud_with_rain:'),
+                              "11": emojize(f':cloud_with_lightning:'),
+                              "13": emojize(f':cloud_with_snow:'),
+                              "50": emojize(f':fog:')}
