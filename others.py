@@ -1,4 +1,5 @@
 from aiohttp import ClientSession
+from orjson import loads
 
 from Dictionaries import unicode_regional_symbol
 
@@ -14,7 +15,3 @@ def get_city_state(city: dict) -> str:
 
 def get_flag_emoji(country: str) -> str:
     return unicode_regional_symbol[country[0]] + unicode_regional_symbol[country[1]]
-
-
-def get_city_list(city: str, limit: int = 1) -> list | dict:
-    ...

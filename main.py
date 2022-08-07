@@ -4,7 +4,6 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.types import ContentType, ParseMode, \
     InputTextMessageContent, InlineQueryResultArticle, InlineQuery
-
 # 3rd party libraries
 from orjson import loads
 from datetime import datetime
@@ -149,7 +148,7 @@ async def get_daily_weather(message: types.Message, state: FSMContext) -> None:
                         return
             if len(city_req) != 0:
                 req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/onecall"
-                                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}"
+                                        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
                                         f"&units=metric&appid={KEY}", await bot.get_session()))
                 # req = loads(
                 #    requests.get(
@@ -176,10 +175,7 @@ async def get_current_weather_form(message, state: FSMContext) -> None:
             await message.reply("Error: long name of the city.")
             return
         else:
-            city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
-                                         f"?q={city}"
-                                         f"&limit=1&appid={KEY}",
-                                         await bot.get_session()))
+            city_req = await get_city_list(city)
             # city_req = loads(
             #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
             #                 f"?q={city}"
@@ -401,14 +397,7 @@ async def inline_search(inline_query: InlineQuery) -> None:  # ToDo rewrite this
     if len(city) == 0:
         return
     city_words = city.split()
-    city_req = loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
-                                 f"?q={city}"
-                                 f"&limit=5&appid={KEY}",
-                                 await bot.get_session()))
-    # city_req = loads(
-    #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-    #                 f"?q={city}"
-    #                 f"&limit=5&appid={KEY}").text)
+    city_req = await get_city_list(city, limit=5)
     city_list = []
     previous_country = ""
     previous_state = ""
@@ -458,6 +447,13 @@ async def inline_search(inline_query: InlineQuery) -> None:  # ToDo rewrite this
                                                    str(req["weather"][0]["icon"])[:-1]], ))
 
     await inline_query.answer(result, cache_time=300)
+
+
+async def get_city_list(city: str, limit: int = 1) -> list | dict:
+    return loads(await fetch(f"https://api.openweathermap.org/geo/1.0/direct"
+                             f"?q={city}"
+                             f"&limit={limit}&appid={KEY}",
+                             await bot.get_session()))
 
 
 if __name__ == '__main__':
