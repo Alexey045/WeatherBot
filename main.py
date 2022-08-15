@@ -6,14 +6,13 @@ from aiogram.types import ContentType, ParseMode, InputTextMessageContent, Inlin
     InlineQuery
 
 from orjson import loads
-# from aiohttp import ClientSession
 from datetime import datetime
 import logging
 from os import getenv
 from sys import exit
-# import requests
 from emoji import emojize
-from Dictionaries import response, unicode_reg_sym, previews, weather_descriptions
+from flag import flag as get_flag_emoji
+from Dictionaries import response, previews, weather_descriptions
 from Exceptions import get_geocoding_exceptions, get_searching_exceptions, name_exception
 
 bot_token = getenv("BOT_TOKEN")
@@ -42,7 +41,6 @@ class DailyForm(StatesGroup):  # ToDo
 
 @dp.message_handler(commands=['daily'], content_types=[ContentType.TEXT])
 async def process_daily_command(message: types.Message) -> None:
-    print(message)
     city = " ".join(str(message.text).split(" ")[1:]).strip()
     if len(city) != 0:
         await get_daily(message, city)
@@ -60,9 +58,7 @@ async def process_settings_command(message: types.Message) -> None:
 
 @dp.message_handler(commands=['current'], content_types=[ContentType.TEXT])
 async def process_current_command(message: types.Message) -> None:
-    print(message)
     city = " ".join(str(message.text).split(" ")[1:]).strip()
-    print(city)
     if len(city) != 0:
         await get_current(message, city)
     else:
@@ -84,15 +80,10 @@ async def process_about_command(message: types.Message) -> None:
 
 @dp.message_handler(content_types=ContentType.LOCATION)
 async def process_geotag_command(message: types.Message) -> None:
-    print(message)
     latitude, longitude = message["location"]["latitude"], message["location"]["longitude"]
     req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
                             f"?lat={latitude}&lon={longitude}&units=metric&appid={KEY}",
                             await bot.get_session()))
-    # async with ClientSession() as session:
-    #    async with session.get(f"https://api.openweathermap.org/data/2.5/weather"
-    #                           f"?lat={latitude}&lon={longitude}&units=metric&appid={KEY}") as request:
-    #        req = loads(await request.text())
     match req['cod']:
         case '404' | 404 | '400' | 400 | '401' | 401:  # is 400 possible?
             await message.reply("Please, write name of the city.")
@@ -176,7 +167,6 @@ async def get_daily_weather(message: types.Message, state: FSMContext) -> None:
 @dp.message_handler(state=CurrentForm.city)
 async def get_current_weather_form(message, state: FSMContext) -> None:
     city = message.text
-    print(city)
     if city.isnumeric() or "&" in city or "#" in city:
         await message.reply("Please, write name of the city.")
         return
@@ -189,11 +179,6 @@ async def get_current_weather_form(message, state: FSMContext) -> None:
                                          f"?q={city}"
                                          f"&limit=1&appid={KEY}",
                                          await bot.get_session()))
-            # city_req = loads(
-            #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-            #                 f"?q={city}"
-            #                 f"&limit=1&appid={KEY}").text)
-            print(city_req)
             if 'cod' in city_req:
                 match city_req['cod']:
                     case '404' | 404:
@@ -203,12 +188,6 @@ async def get_current_weather_form(message, state: FSMContext) -> None:
                 req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
                                         f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
                                         f"&units=metric&appid={KEY}", await bot.get_session()))
-                # req = loads(
-                #    requests.get(
-                #        f"https://api.openweathermap.org/data/2.5/weather"
-                #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
-                #        f"&units=metric&appid={KEY}").text)
-                print(req)
                 match req["cod"]:
                     case '404' | 404 | '400' | 400:
                         # await message.reply(req["message"].capitalize() + '.')
@@ -240,7 +219,6 @@ async def get_current(message: types.Message, city: str):  # ToDo
             #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
             #                 f"?q={city}"
             #                 f"&limit=1&appid={KEY}").text)
-            print(city_req)
             if 'cod' in city_req:
                 match city_req['cod']:
                     case '404' | 404:
@@ -255,7 +233,6 @@ async def get_current(message: types.Message, city: str):  # ToDo
                 #        f"https://api.openweathermap.org/data/2.5/weather"
                 #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
                 #        f"&units=metric&appid={KEY}").text)
-                print(req)
                 match req["cod"]:
                     case '404' | 404 | '400' | 400:
                         # await message.reply(req["message"].capitalize() + '.')
@@ -311,7 +288,8 @@ async def get_daily(message: types.Message, city: str):  # ToDo
 
 async def fun_daily(message: types.Message, city_req: dict, req: dict) -> None:
     city_name = name_exception(city_req)
-    flag = get_flag_emoji(city_req["country"])
+    # flag = get_flag_emoji(city_req["country"])
+    flag = get_flag_emoji(city_req["country"])  # ToDo
     await message.reply(
         f'{flag} '
         f'<b>{city_name}</b>\n\n' + "\n".join(
@@ -350,11 +328,6 @@ async def get_current_inline(city: str):  # ToDo
                                          f"?q={city}"
                                          f"&limit=1&appid={KEY}",
                                          await bot.get_session()))
-            # city_req = loads(
-            #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-            #                 f"?q={city}"
-            #                 f"&limit=1&appid={KEY}").text)
-            print(city_req)
             if 'cod' in city_req:
                 match city_req['cod']:
                     case '404' | 404:
@@ -363,12 +336,6 @@ async def get_current_inline(city: str):  # ToDo
                 req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
                                         f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
                                         f"&units=metric&appid={KEY}", await bot.get_session()))
-                # req = loads(
-                #    requests.get(
-                #        f"https://api.openweathermap.org/data/2.5/weather"
-                #        f"?lat={city_req[0]['lat']}&lon={city_req[0]['lon']}&lang={lang}"
-                #        f"&units=metric&appid={KEY}").text)
-                print(req)
                 match req["cod"]:
                     case '404' | 404 | '400' | 400:
                         # await message.reply(req["message"].capitalize() + '.')
@@ -414,10 +381,6 @@ async def inline_search(inline_query: InlineQuery) -> None:
                                  f"?q={city}"
                                  f"&limit=5&appid={KEY}",
                                  await bot.get_session()))
-    # city_req = loads(
-    #    requests.get(f"https://api.openweathermap.org/geo/1.0/direct"
-    #                 f"?q={city}"
-    #                 f"&limit=5&appid={KEY}").text)
     city_list = []
     previous_country = ""
     previous_state = ""
@@ -449,11 +412,6 @@ async def inline_search(inline_query: InlineQuery) -> None:
             req = loads(await fetch(f"https://api.openweathermap.org/data/2.5/weather"
                                     f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
                                     f"&units=metric&appid={KEY}", await bot.get_session()))
-            # req = loads(
-            #    requests.get(
-            #        f"https://api.openweathermap.org/data/2.5/weather"
-            #        f"?lat={city_req[num]['lat']}&lon={city_req[num]['lon']}&lang={lang}"
-            #        f"&units=metric&appid={KEY}").text)
             answer = fun(city_req[num], req)
             input_content = InputTextMessageContent(answer, parse_mode=ParseMode.HTML)
             if get_searching_exceptions(req) is None:
@@ -475,10 +433,6 @@ async def fetch(url, session):
 
 def get_city_state(city: dict) -> str:
     return city['state'] if 'state' in city else city['country']
-
-
-def get_flag_emoji(country: str) -> str:
-    return unicode_reg_sym[country[0]] + unicode_reg_sym[country[1]]
 
 
 if __name__ == '__main__':
